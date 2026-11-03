@@ -1,5 +1,5 @@
 // Service worker tối giản: lưu sẵn trang vỏ & icon để mở nhanh
-const CACHE = 'sotay-v1';
+const CACHE = 'sotay-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png'];
 
