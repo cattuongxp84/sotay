@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sổ tay Gia đình</title>
+
+<!-- ====== Thông tin icon & ứng dụng ====== -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#5b54ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sổ tay GĐ">
+
+<script>
+/* ============================================================
+   CHỈ CẦN SỬA 2 DÒNG NÀY
+   ------------------------------------------------------------
+   APP_URL : link Ứng dụng web Apps Script (kết thúc bằng /exec)
+   MODE    : 'redirect' – an toàn, dùng được khi web app để
+                          "Chỉ mình tôi" hoặc yêu cầu đăng nhập Google
+             'iframe'   – liền mạch như app thật, CHỈ dùng khi
+                          web app để quyền "Bất kỳ ai"
+   ============================================================ */
+const APP_URL = 'https://script.google.com/macros/s/AKfycbwppwGfTwqxv3xTiPdjhkV8dcBU4fJQ0gpEKeoigrvNgGu0j8XVICYhNK0BgUYOx8U/exec';
+const MODE    = 'redirect';
+</script>
+
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#f4f5fa;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  #splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    background:linear-gradient(150deg,#5b54ec,#7c3aed 60%,#c026d3);color:#fff;transition:opacity .35s}
+  #splash img{width:112px;height:112px;border-radius:28px;box-shadow:0 18px 40px rgba(0,0,0,.25);animation:pop .5s ease}
+  #splash h1{margin:0;font-size:24px;font-weight:800}
+  #splash p{margin:0;opacity:.85;font-size:14px}
+  .dots{display:flex;gap:6px;margin-top:6px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.4;animation:b 1s infinite}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes b{50%{opacity:1;transform:translateY(-4px)}}
+  @keyframes pop{from{transform:scale(.7);opacity:0}}
+  #frame{position:fixed;inset:0;width:100%;height:100%;border:0;
+    padding:env(safe-area-inset-top) 0 0;background:#f4f5fa}
+  #err{display:none;max-width:420px;margin:0 20px;background:rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.5;text-align:center}
+  #err a{color:#fff;font-weight:700}
+  #install{display:none;margin-top:8px;border:0;background:#fff;color:#5b54ec;font-weight:800;font-size:15px;padding:12px 22px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+<div id="splash">
+  <img src="icons/icon-512.png" alt="">
+  <h1>Sổ tay Gia đình</h1>
+  <p>Công việc · Học tập · Gia đình</p>
+  <div class="dots" id="dots"><i></i><i></i><i></i></div>
+  <button id="install">📲 Cài đặt ứng dụng</button>
+  <div id="err"></div>
+</div>
+
+<script>
+// Đăng ký service worker (bắt buộc để Android hiện nút "Cài đặt ứng dụng")
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const ok = /^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL);
+const err = document.getElementById('err');
+const target = ok ? APP_URL + (APP_URL.includes('?') ? '&' : '?') + 'pwa=1' : '';
+
+function openApp(){
+  if (!ok) {
+    document.getElementById('dots').style.display='none';
+    err.style.display='block';
+    err.innerHTML='⚠️ Chưa cấu hình link ứng dụng.<br>Mở file <b>index.html</b> và dán link web app (…/exec) vào dòng <b>APP_URL</b>.';
+    return;
+  }
+  if (MODE === 'iframe') {
+    const f = document.createElement('iframe');
+    f.id='frame'; f.src=target; f.allow='clipboard-write';
+    f.onload=()=>{const s=document.getElementById('splash');s.style.opacity=0;setTimeout(()=>s.remove(),350)};
+    document.body.appendChild(f);
+  } else {
+    location.replace(target);
+  }
+}
+
+// Android/Chrome: hiện nút "Cài đặt ứng dụng" khi mở bằng trình duyệt (chưa cài)
+let deferred=null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); deferred=e;
+  const b=document.getElementById('install'); b.style.display='block';
+  document.getElementById('dots').style.display='none';
+  clearTimeout(window._go);
+  err.style.display='block';
+  err.innerHTML='Cài để có icon trên màn hình chính, hoặc <a href="#" id="skip">mở ngay không cài</a>.';
+  document.getElementById('skip').onclick=ev=>{ev.preventDefault();openApp()};
+  b.onclick=async()=>{deferred.prompt();await deferred.userChoice;deferred=null;b.style.display='none';openApp()};
+});
+
+// Mở app sau màn hình chờ (đợi một chút để Chrome kịp hiện nút cài đặt)
+window._go=setTimeout(openApp, standalone ? 500 : 1200);
+</script>
+</body>
+</html>
