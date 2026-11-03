@@ -47,6 +47,10 @@ const MODE    = 'redirect';
   #err{display:none;max-width:420px;margin:0 20px;background:rgba(255,255,255,.15);border-radius:14px;padding:14px 16px;font-size:13.5px;line-height:1.5;text-align:center}
   #err a{color:#fff;font-weight:700}
   #install{display:none;margin-top:8px;border:0;background:#fff;color:#5b54ec;font-weight:800;font-size:15px;padding:12px 22px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  #help{display:none;max-width:400px;margin:4px 22px 0;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:14px 18px;font-size:14px;line-height:1.55}
+  #help ol{margin:8px 0 0;padding-left:20px}#help li{margin:4px 0}#help p{margin:8px 0 0}
+  #openNow{display:none;color:#fff;opacity:.85;font-size:13.5px;margin-top:4px}
+  #splash{padding:24px;text-align:center}#help{text-align:left}
 </style>
 </head>
 <body>
@@ -56,6 +60,8 @@ const MODE    = 'redirect';
   <p>Công việc · Học tập · Gia đình</p>
   <div class="dots" id="dots"><i></i><i></i><i></i></div>
   <button id="install">📲 Cài đặt ứng dụng</button>
+  <div id="help"></div>
+  <a id="openNow" href="#" onclick="return false">Mở app ngay, không cài →</a>
   <div id="err"></div>
 </div>
 
@@ -85,21 +91,55 @@ function openApp(){
   }
 }
 
-// Android/Chrome: hiện nút "Cài đặt ứng dụng" khi mở bằng trình duyệt (chưa cài)
-let deferred=null;
-window.addEventListener('beforeinstallprompt', e=>{
-  e.preventDefault(); deferred=e;
-  const b=document.getElementById('install'); b.style.display='block';
-  document.getElementById('dots').style.display='none';
-  clearTimeout(window._go);
-  err.style.display='block';
-  err.innerHTML='Cài để có icon trên màn hình chính, hoặc <a href="#" id="skip">mở ngay không cài</a>.';
-  document.getElementById('skip').onclick=ev=>{ev.preventDefault();openApp()};
-  b.onclick=async()=>{deferred.prompt();await deferred.userChoice;deferred=null;b.style.display='none';openApp()};
-});
+// ====== Màn hình cài đặt (khi mở bằng trình duyệt, CHƯA phải từ icon) ======
+const UA = navigator.userAgent;
+const isIOS = /iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+const inApp = /Zalo|FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\//i.test(UA);
+const notChrome = /SamsungBrowser|MiuiBrowser|CocCoc|OPR|Firefox/i.test(UA);
+const ins = document.getElementById('install');
+const help = document.getElementById('help');
+let deferred = null;
 
-// Mở app sau màn hình chờ (đợi một chút để Chrome kịp hiện nút cài đặt)
-window._go=setTimeout(openApp, standalone ? 500 : 1200);
+function showSetup(){
+  document.getElementById('dots').style.display = 'none';
+  help.style.display = 'block';
+  let html;
+  if (inApp) {
+    html = '⚠️ Bạn đang mở trong Zalo/Facebook nên không tạo được icon.<br>Bấm <b>⋯</b> (góc trên) → <b>Mở bằng trình duyệt</b> (chọn <b>Chrome</b>' + (isIOS ? ' / Safari' : '') + ').';
+  } else if (isIOS) {
+    html = '<b>Tạo icon trên iPhone:</b><ol><li>Bấm nút <b>Chia sẻ ⬆︎</b> ở thanh dưới Safari</li><li>Chọn <b>Thêm vào MH chính</b></li><li>Bấm <b>Thêm</b></li></ol>';
+  } else {
+    html = (deferred ? '' : '<b>Tạo icon trên Android:</b><ol><li>Bấm nút <b>⋮</b> góc trên bên phải Chrome</li><li>Chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b></li><li>Bấm <b>Cài đặt / Thêm</b></li></ol>')
+         + (notChrome ? '<p>⚠️ Nên mở link này bằng <b>Chrome</b> để icon hiển thị đẹp nhất.</p>' : '');
+  }
+  help.innerHTML = html;
+  ins.style.display = deferred ? 'block' : 'none';
+  document.getElementById('openNow').style.display = 'block';
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferred = e;
+  if (!standalone) showSetup();
+});
+ins.onclick = async () => {
+  if (!deferred) return;
+  deferred.prompt();
+  const r = await deferred.userChoice;
+  deferred = null;
+  if (r.outcome === 'accepted') {
+    help.innerHTML = '✅ Đã cài xong! Icon <b>Sổ tay GĐ</b> sẽ có trên màn hình chính (hoặc trong ngăn ứng dụng). Từ giờ hãy mở app bằng icon.';
+    ins.style.display = 'none';
+  } else showSetup();
+};
+window.addEventListener('appinstalled', () => {
+  help.innerHTML = '✅ Đã cài xong! Mở app bằng icon <b>Sổ tay GĐ</b> trên màn hình chính.';
+  ins.style.display = 'none';
+});
+document.getElementById('openNow').onclick = openApp;
+
+// Mở từ icon → vào app luôn. Mở bằng trình duyệt → hiện hướng dẫn cài, KHÔNG tự chuyển trang.
+if (standalone) setTimeout(openApp, 400);
+else setTimeout(showSetup, 600);
 </script>
 </body>
 </html>
