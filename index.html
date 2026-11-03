@@ -95,7 +95,9 @@ function openApp(){
 const UA = navigator.userAgent;
 const isIOS = /iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
 const inApp = /Zalo|FBAN|FBAV|FB_IAB|Instagram|Messenger|Line\//i.test(UA);
-const notChrome = /SamsungBrowser|MiuiBrowser|CocCoc|OPR|Firefox/i.test(UA);
+const isOperaMini = /Opera Mini|OPiOS/i.test(UA);
+const isOpera = !isOperaMini && /OPR\/|Opera/i.test(UA);
+const notChrome = isOperaMini || /SamsungBrowser|MiuiBrowser|CocCoc|Firefox/i.test(UA);
 const ins = document.getElementById('install');
 const help = document.getElementById('help');
 let deferred = null;
@@ -106,11 +108,13 @@ function showSetup(){
   let html;
   if (inApp) {
     html = '⚠️ Bạn đang mở trong Zalo/Facebook nên không tạo được icon.<br>Bấm <b>⋯</b> (góc trên) → <b>Mở bằng trình duyệt</b> (chọn <b>Chrome</b>' + (isIOS ? ' / Safari' : '') + ').';
+  } else if (isOpera && !deferred) {
+    html = '<b>Tạo icon trên Opera:</b><ol><li>Bấm nút <b>⋮</b> (góc trên) hoặc logo <b>O</b> (góc dưới bên phải)</li><li>Chọn <b>Thêm vào…</b> → <b>Màn hình chính</b><br><small>(máy khác có thể ghi “Cài đặt ứng dụng” / “Add to Home screen”)</small></li><li>Bấm <b>Thêm</b></li></ol>';
   } else if (isIOS) {
     html = '<b>Tạo icon trên iPhone:</b><ol><li>Bấm nút <b>Chia sẻ ⬆︎</b> ở thanh dưới Safari</li><li>Chọn <b>Thêm vào MH chính</b></li><li>Bấm <b>Thêm</b></li></ol>';
   } else {
     html = (deferred ? '' : '<b>Tạo icon trên Android:</b><ol><li>Bấm nút <b>⋮</b> góc trên bên phải Chrome</li><li>Chọn <b>Cài đặt ứng dụng</b> hoặc <b>Thêm vào màn hình chính</b></li><li>Bấm <b>Cài đặt / Thêm</b></li></ol>')
-         + (notChrome ? '<p>⚠️ Nên mở link này bằng <b>Chrome</b> để icon hiển thị đẹp nhất.</p>' : '');
+         + (notChrome ? (isOperaMini ? '<p>⚠️ Opera Mini không tạo được icon ứng dụng. Hãy mở link bằng <b>Opera</b> (bản thường) hoặc <b>Chrome</b>.</p>' : '<p>⚠️ Nên mở link này bằng <b>Chrome</b> để icon hiển thị đẹp nhất.</p>') : '');
   }
   help.innerHTML = html;
   ins.style.display = deferred ? 'block' : 'none';
